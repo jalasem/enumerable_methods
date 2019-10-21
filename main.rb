@@ -1,4 +1,4 @@
-module Enumerable
+module Enumerable # rubocop:disable Metrics/ModuleLength
     def my_each
       i = 0
       while i < self.size
