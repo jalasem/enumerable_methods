@@ -19,11 +19,7 @@ module Enumerable # rubocop:disable Metrics/ModuleLength
 
   def my_select
     result = []
-    my_each do |e|
-      if yield e
-        result.push e
-      end
-    end
+    my_each { |e| result.push e if yield e }
     result
   end
 
@@ -91,7 +87,8 @@ module Enumerable # rubocop:disable Metrics/ModuleLength
       if args[0].class == Symbol
         memo = self[0]
         my_each_with_index do |e, i|
-          next if i == 0
+          next if i.zero?
+
           memo = memo.method(args[0]).call(e)
         end
       else
@@ -108,7 +105,8 @@ module Enumerable # rubocop:disable Metrics/ModuleLength
     else
       memo = self[0]
       my_each_with_index do |e, i|
-        next if i == 0
+        nextif i.zero?
+
         memo = yield(memo, e)
       end
     end
