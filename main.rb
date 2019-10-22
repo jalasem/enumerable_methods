@@ -2,6 +2,7 @@
 
 module Enumerable # rubocop:disable Metrics/ModuleLength
   def my_each
+    return to_enum unless block_given?
     i = 0
     while i < size
       yield(self[i])
@@ -10,6 +11,7 @@ module Enumerable # rubocop:disable Metrics/ModuleLength
   end
 
   def my_each_with_index
+    return to_enum unless block_given?
     i = 0
     while i < size
       yield(self[i], i)
@@ -18,43 +20,64 @@ module Enumerable # rubocop:disable Metrics/ModuleLength
   end
 
   def my_select
+    return to_enum unless block_given?
     result = []
     my_each { |e| result.push e if yield e }
     result
   end
 
-  def my_all?
+  def my_all?(arg = nil)
+    if block_given?
     result = true
-    my_each do |e|
-      result = false unless yield e
+    my_each { |e| result = false unless yield e}
+    elsif arg.class == Class
+      my_each { |e| result = false unless e.class == arg }
+    elsif arg.class == Regexp
+      my_each { |e| result = false unless e =~ arg }
+    elsif arg.nil?
+      my_each { |e| result = false unless e }
+    else
+      my_each { |e| result = false unless i == arg }
     end
     result
   end
 
-  def my_any?
+  def my_any?(arg = nil)
+    if block_given?
     result = false
-    my_each do |e|
-      if yield e
-        result = true
-        break
-      end
+
+    my_each { |e| result = true unless yield e}
+    elsif arg.class == Class
+      my_each { |e| result = true unless e.class == arg }
+    elsif arg.class == Regexp
+      my_each { |e| result = true unless e =~ arg }
+    elsif arg.nil?
+      my_each { |e| result = true unless e }
+    else
+      my_each { |e| result = true unless i == arg }
     end
     result
   end
 
-  def my_none?
+  def my_none?(arg = nil)
+    if block_given?
     result = true
-    my_each do |e|
-      if yield e
-        result = false
-        break
-      end
+    my_each { |e| result = false unless yield e}
+    elsif arg.class == Class
+      my_each { |e| result = false unless e.class == arg }
+    elsif arg.class == Regexp
+      my_each { |e| result = false unless e =~ arg }
+    elsif arg.nil?
+      my_each { |e| result = false unless e }
+    else
+      my_each { |e| result = false unless i == arg }
     end
     result
   end
 
   def my_count(num = nil)
     count = 0
+    if block_given?
     if num
       my_each do |e|
         count += 1 if e == num
@@ -68,6 +91,7 @@ module Enumerable # rubocop:disable Metrics/ModuleLength
   end
 
   def my_map(proc = nil)
+    return to_enum unless block_given?
     result = []
     if proc
       my_each_with_index do |e, i|
@@ -82,38 +106,31 @@ module Enumerable # rubocop:disable Metrics/ModuleLength
   end
 
   def my_inject(*args)
-    case args.length
-    when 1
-      if args[0].class == Symbol
-        memo = self[0]
-        my_each_with_index do |e, i|
-          next if i.zero?
-
-          memo = memo.method(args[0]).call(e)
-        end
-      else
-        memo = args[0]
-        my_each do |e|
-          memo = yield(memo, e)
-        end
-      end
-    when 2
-      memo = args[0]
-      my_each do |e|
-        memo = memo.method(args[1]).call(e)
-      end
+    arr = to_a.dup
+    if args[0].nil?
+      operand = arr.shift
+    elsif args[1].nil? && !block_given?
+      symbol = args[0]
+      operand = arr.shift
+    elsif args[1].nil? && block_given?
+      operand = args[0]
     else
-      memo = self[0]
-      my_each_with_index do |e, i|
-        nextif i.zero?
-
-        memo = yield(memo, e)
-      end
+      operand = args[0]
+      symbol = args[1]
     end
-    memo
+
+    arr[0..-1].my_each do |i|
+      operand = if symbol
+                  operand.send(symbol, i)
+                else
+                  yield(operand, i)
+                end
+    end
+    operand
   end
 end
 
 def multiply_els(array)
   array.my_inject(:*)
 end
+
