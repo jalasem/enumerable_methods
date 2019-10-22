@@ -37,7 +37,7 @@ module Enumerable # rubocop:disable Metrics/ModuleLength
     elsif arg.nil?
       my_each { |e| result = false unless e }
     else
-      my_each { |e| result = false unless i == arg }
+      my_each { |e| result = false unless e == arg }
     end
     result
   end
