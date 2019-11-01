@@ -2,7 +2,6 @@
 
 # frozen_string_literal: true
 
-# rubocop:disable Metrics/ClassLength
 module Enumerable
   def my_each
     arr = to_a
@@ -120,4 +119,3 @@ module Enumerable
     output
   end
 end
-# rubocop:enable Metrics/ClassLength
