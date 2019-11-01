@@ -1,136 +1,121 @@
+#!/usr/bin/env ruby
+
 # frozen_string_literal: true
 
-module Enumerable # rubocop:disable Metrics/ModuleLength
+module Enumerable
   def my_each
+    arr = to_a
     return to_enum unless block_given?
+
     i = 0
     while i < size
-      yield(self[i])
+      yield(arr[i])
       i += 1
     end
   end
 
   def my_each_with_index
+    arr = to_a
     return to_enum unless block_given?
+
     i = 0
     while i < size
-      yield(self[i], i)
+      yield(arr[i], i)
       i += 1
     end
   end
 
   def my_select
     return to_enum unless block_given?
+
     result = []
-    my_each { |e| result.push e if yield e }
+    my_each { |element| result.push element if yield element }
     result
   end
 
   def my_all?(arg = nil)
     if block_given?
-    result = true
-    my_each { |e| result = false unless yield e}
+      my_each { |element| return false unless yield(element) }
     elsif arg.class == Class
-      my_each { |e| result = false unless e.class == arg }
+      my_each { |element| return false unless element.class.ancestors.include? arg }
     elsif arg.class == Regexp
-      my_each { |e| result = false unless e =~ arg }
+      my_each { |element| return false unless element =~ arg }
     elsif arg.nil?
-      my_each { |e| result = false unless e }
+      my_each { |element| return false unless element }
     else
-      my_each { |e| result = false unless e == arg }
+      my_each { |element| return false unless element == arg }
     end
-    result
+    true
   end
 
   def my_any?(arg = nil)
     if block_given?
-    result = false
-
-    my_each { |e| result = true unless yield e}
+      my_each { |element| return true if yield element }
     elsif arg.class == Class
-      my_each { |e| result = true unless e.class == arg }
+      my_each { |element| return true if element.class.ancestors.include? arg }
     elsif arg.class == Regexp
-      my_each { |e| result = true unless e =~ arg }
+      my_each { |element| return true if arg =~ element }
     elsif arg.nil?
-      my_each { |e| result = true unless e }
+      my_each { |element| return true if element }
     else
-      my_each { |e| result = true unless e == arg }
+      my_each { |element| return true if element == arg }
     end
-    result
+    false
   end
 
   def my_none?(arg = nil)
     if block_given?
-    result = true
-    my_each { |e| result = false unless yield e}
+      my_each { |element| return false if yield element }
     elsif arg.class == Class
-      my_each { |e| result = false unless e.class == arg }
+      my_each { |element| return false if element.class.ancestors.include? arg }
     elsif arg.class == Regexp
-      my_each { |e| result = false unless e =~ arg }
+      my_each { |element| return false if arg =~ element }
     elsif arg.nil?
-      my_each { |e| result = false unless e }
+      my_each { |element| return false if element }
     else
-      my_each { |e| result = false unless e == arg }
+      my_each { |element| return false if element == arg }
     end
-    result
+    true
   end
 
-  def my_count(num = nil)
-    count = 0
+  def my_count(arg = nil)
+    c = 0 # c - count
     if block_given?
-    if num
-      my_each do |e|
-        count += 1 if e == num
-      end
+      my_each { |element| c += 1 if yield(element) }
+    elsif arg.nil?
+      my_each { |_element| c += 1 }
     else
-      my_each do |e|
-        count += 1 if yield e
-      end
+      my_each { |element| c += 1 if element == arg }
     end
-    count
+    c
   end
 
-  def my_map(proc = nil)
+  def my_map
     return to_enum unless block_given?
+
     result = []
-    if proc
-      my_each_with_index do |e, i|
-        result[i] = proc.call(e)
-      end
+    if self.class == Range
+      to_a.my_each_with_index { |element, index| result[index] = yield element }
     else
-      my_each_with_index do |e, i|
-        result[i] = yield e
-      end
+      my_each_with_index { |element, index| result[index] = yield element }
     end
     result
   end
 
-  def my_inject(*args)
-    arr = to_a.dup
-    if args[0].nil?
-      operand = arr.shift
-    elsif args[1].nil? && !block_given?
-      symbol = args[0]
-      operand = arr.shift
-    elsif args[1].nil? && block_given?
-      operand = args[0]
+  def my_inject(arg = nil, arg2 = nil)
+    output = is_a?(Range) ? min : self[0]
+    if block_given?
+      my_each_with_index { |ele, i| output = yield(output, ele) if i.positive? }
+      output = yield(output, arg) if arg
+    elsif arg.is_a?(Symbol) || arg.is_a?(String)
+      my_each_with_index { |ele, i| output = output.send(arg, ele) if i.positive? }
+    elsif arg2.is_a?(Symbol) || arg2.is_a?(String)
+      my_each_with_index { |ele, i| output = output.send(arg2, ele) if i.positive? }
+    elsif arg
+      return "my_inject: #{arg} is not a symbol nor a string"
     else
-      operand = args[0]
-      symbol = args[1]
+      return 'my_inject: no block given'
     end
-
-    arr[0..-1].my_each do |i|
-      operand = if symbol
-                  operand.send(symbol, i)
-                else
-                  yield(operand, i)
-                end
-    end
-    operand
+    output
   end
 end
-
-def multiply_els(array)
-  array.my_inject(:*)
-end
-
