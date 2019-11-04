@@ -103,43 +103,22 @@ module Enumerable # rubocop:disable Metrics/ModuleLength
     result
   end
 
-  def my_inject(accumulator = nil, operation = nil, &block)
-    if accumulator.nil? && operation.nil? && block.nil?
-      raise ArgumentError, "you must provide an operation or a block"
+  def my_inject(arg = nil, arg2 = nil)
+    output = is_a?(Range) ? min : self[0]
+    if block_given?
+      my_each_with_index { |ele, i| output = yield(output, ele) if i.positive? }
+      output = yield(output, arg) if arg
+    elsif arg.is_a?(Symbol) || arg.is_a?(String)
+      my_each_with_index { |ele, i| output = output.send(arg, ele) if i.positive? }
+    elsif arg2.is_a?(Symbol) || arg2.is_a?(String)
+      my_each_with_index { |ele, i| output = output.send(arg2, ele) if i.positive? }
+      output = output.send(arg2, arg)
+    elsif arg
+      return "my_inject: #{arg} is not a symbol nor a string"
+    else
+      return 'my_inject: no block given'
     end
-
-    if operation && block
-      raise ArgumentError, "you must provide either an operation symbol or a block, not both"
-    end
-
-    if operation.nil? && block.nil?
-      operation = accumulator
-      accumulator = nil
-    end
-
-    block = case operation
-      when Symbol
-        lambda { |acc, value| acc.send(operation, value) }
-      when nil
-        block
-      else
-      raise ArgumentError, "the operation provided must be a symbol"
-    end
-
-    if accumulator.nil?
-      ignore_first = true
-      accumulator = first
-    end
-
-    index = 0
-
-    each do |element|
-      unless ignore_first && index == 0
-        accumulator = block.call(accumulator, element)
-      end
-      index += 1
-    end
-    accumulator
+    output
   end
 end
 # rubocop:enable  Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
